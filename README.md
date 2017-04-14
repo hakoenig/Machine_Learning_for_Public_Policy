@@ -1,4 +1,4 @@
-# Repo for University of Chicago Course Machine Learning for Public Policy
+# Repo for Machine Learning for Public Policy
 
 Collection of my work for assignments:
 
