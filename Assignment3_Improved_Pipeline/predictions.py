@@ -61,11 +61,11 @@ def clf_loop(models_to_run, clfs, grid, X_train, X_test, y_train, y_test, list_k
 
                 start_time_training = time.time()
                 clf.fit(X_train, y_train)
-                time_training = time.time() - start_time_training
+                train_time = time.time() - start_time_training
 
                 start_time_predicting = time.time()
                 y_pred_probs = clf.predict_proba(X_test)[:,1]
-                time_predicting = time.time() - start_time_predicting
+                predict_time = time.time() - start_time_predicting
 
                 y_pred_probs_sorted, y_test_sorted = zip(*sorted(zip(y_pred_probs, y_test), reverse=True))
 
@@ -79,13 +79,13 @@ def clf_loop(models_to_run, clfs, grid, X_train, X_test, y_train, y_test, list_k
                         precision_at_k_scores.append(precision)
                         recall_at_k_scores.append(recall)
 
-                        results_df.loc[len(results_df)] = [models_to_run[index], clf, p,
-                                                            train_time, predict_time, threshold,
-                                                            roc_auc_score(y_test, y_pred_probs)] + precision_at_k_scores + recall_at_k_scores
+                    results_df.loc[len(results_df)] = [models_to_run[index], clf, p,
+                                                        train_time, predict_time, threshold,
+                                                        roc_auc_score(y_test, y_pred_probs)] + precision_at_k_scores + recall_at_k_scores
 
                 plot_precision_recall_n(y_test, y_pred_probs, clf)
 
-            except IndexError, e:
+            except IndexError as e:
                 print('Error:', e)
                 continue
 
@@ -104,7 +104,7 @@ def plot_precision_recall_n(y_true, y_prob, model_name):
     number_scored = len(y_prob)
 
     for value in pr_thresholds:
-        num_above_thresh = len(y_score[y_prob >= value])
+        num_above_thresh = len(y_prob[y_prob >= value])
         pct_above_thresh = num_above_thresh / float(number_scored)
         pct_above_per_thresh.append(pct_above_thresh)
     pct_above_per_thresh = np.array(pct_above_per_thresh)
@@ -155,8 +155,8 @@ def define_clfs_params(grid_size):
     'GB': {'n_estimators': [1,10,100,1000,10000], 'learning_rate': [0.001,0.01,0.05,0.1,0.5],'subsample': [0.1,0.5,1.0], 'max_depth': [1,3,5,10,20,50,100]},
     'NB': {},
     'KNN': {'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']},
-    'NN': {'loss': ["hinge", "log", "modified_huber", "squared_hinge", "perceptron"], 'penalty': ["none", "l2", "l1", "elasticnet"], "alpha": [0.0001, 0.001, 0.01, 0.1], "n_iter": [1,5,10,50,100]
-            }
+    'NN': {'loss': ["hinge", "log", "modified_huber", "squared_hinge", "perceptron"], 'penalty': ["none", "l2", "l1", "elasticnet"],
+                    "alpha": [0.0001, 0.001, 0.01, 0.1], "n_iter": [1,5,10,50,100]}
     }
 
     small_grid = {
@@ -168,7 +168,7 @@ def define_clfs_params(grid_size):
     'SVM' :{'C' :[0.00001,0.0001,0.001,0.01,0.1,1,10],'kernel':['linear']},
     'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1,0.5],'subsample' : [0.1,0.5,1.0], 'max_depth': [5,50]},
     'NB': {},
-    'KNN' :{'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']}
+    'KNN' :{'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']},
     'NN': {'loss': ["hinge", "log"], 'penalty': ["none", "l2",], "alpha": [0.0001, 0.1], "n_iter": [1,5]}
     }
 
@@ -181,7 +181,7 @@ def define_clfs_params(grid_size):
     'SVM' :{'C' :[0.01], 'kernel':['linear']},
     'GB': {'n_estimators': [1], 'learning_rate': [0.1], 'subsample': [0.5], 'max_depth': [1]},
     'NB': {},
-    'KNN' :{'n_neighbors': [5], 'weights': ['uniform'], 'algorithm': ['auto']}
+    'KNN' :{'n_neighbors': [5], 'weights': ['uniform'], 'algorithm': ['auto']},
     'NN': {'loss': ["hinge"], 'penalty': ["none"], "alpha": [0.0001], "n_iter": [1]}
     }
 
@@ -311,21 +311,19 @@ def report(results, n_top=3):
             print("")
 
 
-def calc_precision_recall(predicted_val, y, threshold, top_k):
+def calc_precision_recall(predicted_values, y, threshold, top_k):
     """
     Calculates precision and recall for given threshold.
     In:
-        - predicted_val: numpy array of predicted scores
+        - predicted_values: numpy array of predicted scores
         - y: target values
         - threshold: threshold to use for calculation
         - top_k: int or "All" - how many first entries are we considering?
     Out:
         - (precision_score, recall_score)
     """
-    x = np.zeros(len(predicted_val))
     y = np.asarray(y)
-
-    x[predicted_val >= threshold] = 1
+    x = [1 if predicted_value >= threshold else 0 for predicted_value in predicted_values]
 
     tp = fp = fn = 0
 
