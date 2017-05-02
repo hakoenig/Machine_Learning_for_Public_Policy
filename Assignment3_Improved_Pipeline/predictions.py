@@ -12,13 +12,10 @@ import matplotlib.pyplot as plt
 from scipy import optimize
 
 from sklearn.metrics import *
-from sklearn.grid_search import ParameterGrid
-from sklearn.cross_validation import train_test_split
-from sklearn.metrics import precision_recall_curve
+from sklearn.model_selection import ParameterGrid, train_test_split
 
-
+from sklearn import svm
 from sklearn.neural_network import MLPClassifier
-from sklearn import preprocessing, cross_validation, svm, tree
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, GradientBoostingClassifier, AdaBoostClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import GaussianNB
@@ -26,7 +23,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 
 
-def clf_loop(models_to_run, clfs, grid, X_train, X_test, y_train, y_test, list_ks, list_thresholds):
+def clf_loop(models_to_run, clfs, grid, X_train, X_test, y_train, y_test, list_ks, list_thresholds, print_plots = False):
     """
     Loops through classifiers and stores metrics in pandas df.
     Df gets returned.
@@ -42,6 +39,7 @@ def clf_loop(models_to_run, clfs, grid, X_train, X_test, y_train, y_test, list_k
         - y_test: targets of test set
         - list_ks: list of k's to use for precision at k calculations
         - list_thresholds: list of thresholds to use for binary decision (1 or not)
+        - print_plots: (bool) whether or not to print plots
     Out:
         - pandas df
     """
@@ -67,6 +65,7 @@ def clf_loop(models_to_run, clfs, grid, X_train, X_test, y_train, y_test, list_k
                 y_pred_probs = clf.predict_proba(X_test)[:,1]
                 predict_time = time.time() - start_time_predicting
 
+                roc_score = roc_auc_score(y_test, y_pred_probs)
                 y_pred_probs_sorted, y_test_sorted = zip(*sorted(zip(y_pred_probs, y_test), reverse=True))
 
                 for threshold in list_thresholds:
@@ -81,9 +80,10 @@ def clf_loop(models_to_run, clfs, grid, X_train, X_test, y_train, y_test, list_k
 
                     results_df.loc[len(results_df)] = [models_to_run[index], clf, p,
                                                         train_time, predict_time, threshold,
-                                                        roc_auc_score(y_test, y_pred_probs)] + precision_at_k_scores + recall_at_k_scores
+                                                        roc_score] + precision_at_k_scores + recall_at_k_scores
 
-                plot_precision_recall_n(y_test, y_pred_probs, clf)
+                if print_plots:
+                    _ = plot_precision_recall_n(y_test, y_pred_probs, clf)
 
             except IndexError as e:
                 print('Error:', e)
@@ -95,7 +95,7 @@ def clf_loop(models_to_run, clfs, grid, X_train, X_test, y_train, y_test, list_k
 def plot_precision_recall_n(y_true, y_prob, model_name):
     """
     Function to plot precision recall curve.
-    Source: https://github.com/rayidghani/magicloops/blob/master/magicloops.py
+    Adjusted from: https://github.com/rayidghani/magicloops/blob/master/magicloops.py
     """
     precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_true, y_prob)
     precision_curve = precision_curve[:-1]
@@ -109,20 +109,24 @@ def plot_precision_recall_n(y_true, y_prob, model_name):
         pct_above_per_thresh.append(pct_above_thresh)
     pct_above_per_thresh = np.array(pct_above_per_thresh)
 
-    plt.clf()
+    _ = plt.clf()
     fig, ax1 = plt.subplots()
-    ax1.plot(pct_above_per_thresh, precision_curve, 'b')
-    ax1.set_xlabel('percent of population')
-    ax1.set_ylabel('precision', color='b')
-    ax2 = ax1.twinx()
-    ax2.plot(pct_above_per_thresh, recall_curve, 'r')
-    ax2.set_ylabel('recall', color='r')
-    ax1.set_ylim([0,1])
-    ax1.set_ylim([0,1])
-    ax2.set_xlim([0,1])
+    _ = ax1.plot(pct_above_per_thresh, precision_curve, 'b')
+    _ = ax1.set_xlabel('percent of population')
+    _ = ax1.set_ylabel('precision', color='b')
 
-    plt.title(model_name)
-    plt.show()
+    ax2 = ax1.twinx()
+    _ = ax2.plot(pct_above_per_thresh, recall_curve, 'r')
+    _ = ax2.set_ylabel('recall', color='r')
+    _ = ax1.set_ylim([0,1])
+    _ = ax1.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+
+    _ = ax2.set_xlim([0,1])
+    _ = ax2.set_ylim([0,1])
+    _ = ax2.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+
+    _ = plt.title(model_name)
+    _ = plt.show()
 
 
 def define_clfs_params(grid_size):
@@ -155,21 +159,22 @@ def define_clfs_params(grid_size):
     'GB': {'n_estimators': [1,10,100,1000,10000], 'learning_rate': [0.001,0.01,0.05,0.1,0.5],'subsample': [0.1,0.5,1.0], 'max_depth': [1,3,5,10,20,50,100]},
     'NB': {},
     'KNN': {'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']},
-    'NN': {'loss': ["hinge", "log", "modified_huber", "squared_hinge", "perceptron"], 'penalty': ["none", "l2", "l1", "elasticnet"],
-                    "alpha": [0.0001, 0.001, 0.01, 0.1], "n_iter": [1,5,10,50,100]}
+    'NN': {'activation': ["identity", "logistic", "tanh", "relu"], 'solver': ["lbfgs", "sgd", "adam"], "alpha": [0.0001, 0.1],
+            'learning_rate': ["constant", "invscaling", "adaptive"], 'learning_rate_init': [0.001, 0.01, 0.1]}
     }
 
     small_grid = {
-    'LR': { 'penalty': ['l1','l2'], 'C': [0.00001,0.001,0.1,1,10]},
-    'DT': {'criterion': ['gini', 'entropy'], 'max_depth': [1,5,10,20,50,100], 'max_features': ['sqrt','log2'],'min_samples_split': [2,5,10]},
-    'RF':{'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10]},
-    'ET': { 'n_estimators': [10,100], 'criterion' : ['gini', 'entropy'] ,'max_depth': [5,50], 'max_features': ['sqrt','log2'],'min_samples_split': [2,10]},
+    'LR': { 'penalty': ['l1','l2'], 'C': [0.001,0.1,1,10]},
+    'DT': {'criterion': ['gini'], 'max_depth': [1,5,10,20,50,100], 'max_features': ['sqrt','log2'], 'min_samples_split': [2,5,10]},
+    'RF':{'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'], 'min_samples_split': [2,10]},
+    'ET': { 'n_estimators': [10,100], 'criterion' : ['gini'] ,'max_depth': [5,50], 'max_features': ['sqrt','log2'], 'min_samples_split': [2,10]},
     'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [1,10,100,1000,10000]},
-    'SVM' :{'C' :[0.00001,0.0001,0.001,0.01,0.1,1,10],'kernel':['linear']},
-    'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1,0.5],'subsample' : [0.1,0.5,1.0], 'max_depth': [5,50]},
+    'SVM' :{'C' :[0.0001,0.001,0.01,0.1,1,10], 'kernel':['linear', 'poly']},
+    'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1,0.5], 'subsample': [0.1,0.5,1.0], 'max_depth': [5,50]},
     'NB': {},
-    'KNN' :{'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']},
-    'NN': {'loss': ["hinge", "log"], 'penalty': ["none", "l2",], "alpha": [0.0001, 0.1], "n_iter": [1,5]}
+    'KNN' :{'n_neighbors': [1,5,10,25,50,100], 'weights': ['uniform','distance'], 'algorithm': ['auto','ball_tree','kd_tree']},
+    'NN': {'activation': ["tanh", "relu"], 'solver': ["sgd", "adam"], "alpha": [0.0001, 0.1],
+            'learning_rate': ["constant", "adaptive"], 'learning_rate_init': [0.001, 0.01]}
     }
 
     test_grid = {
@@ -182,7 +187,8 @@ def define_clfs_params(grid_size):
     'GB': {'n_estimators': [1], 'learning_rate': [0.1], 'subsample': [0.5], 'max_depth': [1]},
     'NB': {},
     'KNN' :{'n_neighbors': [5], 'weights': ['uniform'], 'algorithm': ['auto']},
-    'NN': {'loss': ["hinge"], 'penalty': ["none"], "alpha": [0.0001], "n_iter": [1]}
+    'NN': {'activation': ["identity", "logistic", "tanh", "relu"], 'solver': ["lbfgs", "sgd", "adam"], "alpha": [0.0001, 0.1],
+            'learning_rate': ["constant", "invscaling", "adaptive"], 'learning_rate_init': [0.001, 0.01, 0.1]}
     }
 
     if (grid_size == 'large'):
@@ -368,6 +374,7 @@ def plot_precision_recall_threshold(threshold_list, precision_list, recall_list)
 
     _ = ax1.set_ylabel('precision', color='b')
     _ = ax1.set_ylim(0,1.1)
+    _ = ax1.set_yticks([0,0.2,0.4,0.6,0.8,1])
     _ = ax1.tick_params('y', colors='b')
 
     ax2 = ax1.twinx()
@@ -375,6 +382,7 @@ def plot_precision_recall_threshold(threshold_list, precision_list, recall_list)
 
     _ = ax2.set_ylabel('recall', color='r')
     _ = ax2.set_ylim(0,1.1)
+    _ = ax2.set_yticks([0,0.2,0.4,0.6,0.8,1])
     _ = ax2.tick_params('y', colors='r')
 
     fig.tight_layout()
