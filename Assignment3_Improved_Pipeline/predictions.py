@@ -159,8 +159,8 @@ def define_clfs_params(grid_size):
     'GB': {'n_estimators': [1,10,100,1000,10000], 'learning_rate': [0.001,0.01,0.05,0.1,0.5],'subsample': [0.1,0.5,1.0], 'max_depth': [1,3,5,10,20,50,100]},
     'NB': {},
     'KNN': {'n_neighbors': [1,5,10,25,50,100],'weights': ['uniform','distance'],'algorithm': ['auto','ball_tree','kd_tree']},
-    'NN': {'activation': ["identity", "logistic", "tanh", "relu"], 'solver': ["lbfgs", "sgd", "adam"], "alpha": [0.0001, 0.1],
-            'learning_rate': ["constant", "invscaling", "adaptive"], 'learning_rate_init': [0.001, 0.01, 0.1]}
+    'NN': {'activation': ["tanh", "relu"], 'solver': ["lbfgs", "sgd"], "alpha": [0.0001, 0.1],
+            'learning_rate': ["constant", "adaptive"], 'learning_rate_init': [0.001, 0.01, 0.1]}
     }
 
     small_grid = {
@@ -173,8 +173,8 @@ def define_clfs_params(grid_size):
     'GB': {'n_estimators': [10,100], 'learning_rate' : [0.001,0.1,0.5], 'subsample': [0.1,0.5,1.0], 'max_depth': [5,50]},
     'NB': {},
     'KNN' :{'n_neighbors': [1,5,10,25,50,100], 'weights': ['uniform','distance'], 'algorithm': ['auto','ball_tree','kd_tree']},
-    'NN': {'activation': ["tanh", "relu"], 'solver': ["sgd", "adam"], "alpha": [0.0001, 0.1],
-            'learning_rate': ["constant", "adaptive"], 'learning_rate_init': [0.001, 0.01]}
+    'NN': {'activation': ["tanh", "relu"], 'solver': ["lbfgs", "sgd"], "alpha": [0.0001, 0.1],
+            'learning_rate': ["constant", "adaptive"], 'learning_rate_init': [0.001, 0.01, 0.1]}
     }
 
     test_grid = {
@@ -187,8 +187,8 @@ def define_clfs_params(grid_size):
     'GB': {'n_estimators': [1], 'learning_rate': [0.1], 'subsample': [0.5], 'max_depth': [1]},
     'NB': {},
     'KNN' :{'n_neighbors': [5], 'weights': ['uniform'], 'algorithm': ['auto']},
-    'NN': {'activation': ["identity", "logistic", "tanh", "relu"], 'solver': ["lbfgs", "sgd", "adam"], "alpha": [0.0001, 0.1],
-            'learning_rate': ["constant", "invscaling", "adaptive"], 'learning_rate_init': [0.001, 0.01, 0.1]}
+    'NN': {'activation': ["tanh", "relu"], 'solver': ["lbfgs", "sgd"], "alpha": [0.0001, 0.1],
+            'learning_rate': ["constant", "adaptive"], 'learning_rate_init': [0.001, 0.01, 0.1]}
     }
 
     if (grid_size == 'large'):
