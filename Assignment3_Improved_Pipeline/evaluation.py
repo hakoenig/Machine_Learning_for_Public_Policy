@@ -2,6 +2,19 @@
 Module for evaluation and comparision of models.
 """
 
+def add_f1_score(df, precision_col, recall_col, target_col):
+    """
+    Adds column for f1 score to df.
+    In:
+        - df: pandas df
+        - precision_col: name of column with precision
+        - recall_col: name of column with recall
+        - target_col: name of new f1 column
+    """
+    df[target_col] = 2 * ((df[precision_col] * df[recall_col])
+                             / (df[precision_col] + df[recall_col]))
+
+
 def print_mean_max(df, groupby_column, column, time_in_min = True):
     """
     Prints mean and max of groupby_column.
