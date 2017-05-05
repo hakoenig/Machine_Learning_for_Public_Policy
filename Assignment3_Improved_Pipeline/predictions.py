@@ -118,11 +118,11 @@ def plot_precision_recall_n(y_true, y_prob, model_name):
     ax2 = ax1.twinx()
     _ = ax2.plot(pct_above_per_thresh, recall_curve, 'r')
     _ = ax2.set_ylabel('recall', color='r')
-    _ = ax1.set_ylim([0,1])
+    _ = ax1.set_ylim([0,1.05])
     _ = ax1.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
 
     _ = ax2.set_xlim([0,1])
-    _ = ax2.set_ylim([0,1])
+    _ = ax2.set_ylim([0,1.05])
     _ = ax2.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
 
     _ = plt.title(model_name)
@@ -166,7 +166,7 @@ def define_clfs_params(grid_size):
     small_grid = {
     'LR': { 'penalty': ['l1','l2'], 'C': [0.001,0.1,1,10]},
     'DT': {'criterion': ['gini'], 'max_depth': [1,5,10,20,50,100], 'max_features': ['sqrt','log2'], 'min_samples_split': [2,5,10]},
-    'RF':{'n_estimators': [10,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'], 'min_samples_split': [2,10]},
+    'RF':{'n_estimators': [10,100,100], 'max_depth': [5,50], 'max_features': ['sqrt','log2'], 'min_samples_split': [2,10]},
     'ET': { 'n_estimators': [10,100], 'criterion' : ['gini'] ,'max_depth': [5,50], 'max_features': ['sqrt','log2'], 'min_samples_split': [2,10]},
     'AB': { 'algorithm': ['SAMME', 'SAMME.R'], 'n_estimators': [1,10,100,1000,10000]},
     'SVM' :{'C' :[0.0001,0.001,0.01,0.1,1,10], 'kernel':['linear', 'poly']},
@@ -301,22 +301,6 @@ class Average_Predictor:
         return score
 
 
-def report(results, n_top=3):
-    """
-    Source:
-    http://scikit-learn.org/stable/auto_examples/model_selection/randomized_search.html#sphx-glr-auto-examples-model-selection-randomized-search-py
-    """
-    for i in range(1, n_top + 1):
-        candidates = np.flatnonzero(results['rank_test_score'] == i)
-        for candidate in candidates:
-            print("Model with rank: {0}".format(i))
-            print("Mean validation score: {0:.3f} (std: {1:.3f})".format(
-                  results['mean_test_score'][candidate],
-                  results['std_test_score'][candidate]))
-            print("Parameters: {0}".format(results['params'][candidate]))
-            print("")
-
-
 def calc_precision_recall(predicted_values, y, threshold, top_k):
     """
     Calculates precision and recall for given threshold.
@@ -333,7 +317,7 @@ def calc_precision_recall(predicted_values, y, threshold, top_k):
 
     tp = fp = fn = 0
 
-    if top_k == "All" or top_k == None:
+    if (top_k == "All") or (top_k == None) or (top_k > len(x)):
         top_k = len(x)
 
     for i in range(top_k):
